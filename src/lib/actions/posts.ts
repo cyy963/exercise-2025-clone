@@ -6,6 +6,7 @@ import { insertPostSchema, updatePostSchema } from "@/lib/db/types";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getSession } from "../auth/utils";
+import z from "zod";
 
 export async function createPostAction(_prevState: any, formData: FormData) {
   const session = await getSession();
@@ -90,12 +91,16 @@ export async function updatePostAction(formData: FormData) {
 export async function deletePostAction(formData: FormData) {
   const postId = formData.get("postId")?.toString();
 
-  if (!postId || isNaN(parseInt(postId))) {
+  const postIdSchema = z.string().regex(/^\d+$/).transform(Number).refine((val) => val > 0, {
+    message: "Invalid post ID",
+  });
+  const validated = postIdSchema.safeParse(postId);
+  if (!validated.success) {
     return { error: "Invalid post ID" };
   }
 
   try {
-    await db.delete(posts).where(eq(posts.id, parseInt(postId)));
+    await db.delete(posts).where(eq(posts.id, validated.data));
 
     revalidatePath("/dashboard");
     return { success: true };
