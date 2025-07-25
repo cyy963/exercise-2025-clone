@@ -53,7 +53,14 @@ export async function POST(
     }
 
     const [updatedPost] = await db
-      .select()
+      .select({
+        id: posts.id,
+        title: posts.title,
+        content: posts.content,
+        authorId: posts.authorId,
+        likeCount: posts.likeCount,
+        createdAt: posts.createdAt,
+      })
       .from(posts)
       .where(eq(posts.id, postId))
       .limit(1);
