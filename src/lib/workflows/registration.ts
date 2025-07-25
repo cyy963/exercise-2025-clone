@@ -8,7 +8,7 @@ interface NotificationResult {
   messageId: string;
 }
 
-export const registerUserEffect = (username: string, password: string) =>
+export const registerUser = (username: string, password: string) =>
   Effect.gen(function* (_) {
     // Step 1: Hash password (side effect)
     const hashedPassword = yield* Effect.tryPromise({
