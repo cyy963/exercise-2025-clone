@@ -45,7 +45,14 @@ export const registerUser = (username: string, password: string) =>
     });
 
     // Step 5: Return result
-    return { success: true, user: newUser };
+    return {
+      success: true,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        createdAt: newUser.createdAt,
+      },
+    };
   });
 
 // To run it:
