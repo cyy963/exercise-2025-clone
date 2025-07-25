@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
 import { createPostAction } from "@/lib/actions/posts";
 
 export function CreatePostForm() {
-  const [state, formAction, isPending] = useActionState(createPostAction, null);
+  const [state, formAction, isPendingAction] = useActionState(createPostAction, null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [isPending, startTransition] = useTransition();
 
   // Clear form on successful submission
   useEffect(() => {
@@ -14,13 +15,21 @@ export function CreatePostForm() {
     }
   }, [state?.success]);
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(formRef.current!);
+    startTransition(() => {
+      formAction(formData);
+    });
+  };
+
   return (
     <div className="bg-white shadow rounded-lg p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">
         Create New Post
       </h2>
 
-      <form ref={formRef} action={formAction} className="space-y-4">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
             htmlFor="title"
@@ -33,7 +42,7 @@ export function CreatePostForm() {
             id="title"
             name="title"
             required
-            disabled={isPending}
+            disabled={isPending || isPendingAction}
             className="text-black w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             placeholder="Enter post title"
           />
@@ -51,7 +60,7 @@ export function CreatePostForm() {
             name="content"
             rows={4}
             required
-            disabled={isPending}
+            disabled={isPending || isPendingAction}
             className="text-black w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             placeholder="What's on your mind?"
           />
@@ -72,10 +81,10 @@ export function CreatePostForm() {
         <div>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || isPendingAction}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isPending ? (
+            {isPending || isPendingAction ? (
               <div className="flex items-center">
                 <svg
                   className="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
