@@ -9,7 +9,13 @@ export async function getAllPosts() {
 export async function getPostsWithAuthors() {
   return await db.query.posts.findMany({
     with: {
-      author: true,
+      author: {
+        columns: {
+          id: true,
+          username: true,
+          createdAt: true,
+        },
+      },
     },
   });
 }
