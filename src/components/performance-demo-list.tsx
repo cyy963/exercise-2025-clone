@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { FixedSizeList as List } from "react-window";
 import { PerformanceDemoItem } from "./performance-demo-item";
 
@@ -53,14 +53,15 @@ export function PerformanceDemoList() {
   const categories = useMemo(() => ["all", ...Array.from(new Set(ITEMS.map(item => item.category)))], []);
 
   // Row renderer for react-window
-  const Row = ({ index, style, data }: any) => {
+  const Row = useCallback(({ index, style, data }: any) => {
     const item = data.items[index];
+    // Only pass searchTerm to the visible item
     return (
       <div style={style}>
         <PerformanceDemoItem item={item} searchTerm={data.searchTerm} />
       </div>
     );
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
