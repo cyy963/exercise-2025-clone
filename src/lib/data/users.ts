@@ -20,7 +20,14 @@ export async function getUserWithPosts(userId: number) {
   if (!user) return null;
 
   const userPosts = await db
-    .select()
+    .select({
+      id: posts.id,
+      title: posts.title,
+      content: posts.content,
+      authorId: posts.authorId,
+      likeCount: posts.likeCount,
+      createdAt: posts.createdAt,
+    })
     .from(posts)
     .where(eq(posts.authorId, userId));
 
