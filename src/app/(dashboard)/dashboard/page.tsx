@@ -8,6 +8,7 @@ import { PrefetchedPosts } from "@/components/prefetched-posts";
 import { CreatePostForm } from "@/components/create-post-form";
 import { logoutAction } from "@/lib/auth/actions";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -63,7 +64,9 @@ export default async function DashboardPage() {
               </div>
 
               <div className="mt-6 bg-white shadow rounded-lg p-6">
-                <PrefetchedPosts postsPromise={postsPromise} />
+                <Suspense fallback={<div>Loading latest posts...</div>}>
+                  <PrefetchedPosts postsPromise={postsPromise} />
+                </Suspense>
               </div>
             </div>
 
