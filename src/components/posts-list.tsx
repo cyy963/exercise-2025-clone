@@ -29,10 +29,7 @@ export function PostsList({ posts }: PostsListProps) {
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
 
-        const complexCalculation = Array.from({ length: 1000 }, (_, i) => {
-          return Math.sqrt(i * Math.PI) + Math.sin(i) + Math.cos(i);
-        }).reduce((sum, val) => sum + val, 0);
-
+        // Removed complexCalculation for performance
         return titleMatch || contentMatch || authorMatch;
       });
     }
