@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { FixedSizeList as List } from "react-window";
 import { PerformanceDemoItem } from "./performance-demo-item";
 
 // Generate a large dataset
@@ -25,32 +26,41 @@ export function PerformanceDemoList() {
   const [sortBy, setSortBy] = useState("name");
   const [showInStockOnly, setShowInStockOnly] = useState(false);
 
-  // This filter runs on every render - performance issue #1
-  const filteredItems = ITEMS.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
-    const matchesStock = !showInStockOnly || item.inStock;
-    
-    return matchesSearch && matchesCategory && matchesStock;
-  });
-
-  // This sort runs on every render - performance issue #2
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    switch (sortBy) {
-      case "name":
-        return a.name.localeCompare(b.name);
-      case "price":
-        return a.price - b.price;
-      case "rating":
-        return b.rating - a.rating;
-      default:
-        return 0;
-    }
-  });
+  // Memoize filtered and sorted items
+  const sortedItems = useMemo(() => {
+    const filteredItems = ITEMS.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+      const matchesStock = !showInStockOnly || item.inStock;
+      return matchesSearch && matchesCategory && matchesStock;
+    });
+    return [...filteredItems].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "price":
+          return a.price - b.price;
+        case "rating":
+          return b.rating - a.rating;
+        default:
+          return 0;
+      }
+    });
+  }, [searchTerm, selectedCategory, sortBy, showInStockOnly]);
 
   // Generate categories for filter
-  const categories = ["all", ...Array.from(new Set(ITEMS.map(item => item.category)))];
+  const categories = useMemo(() => ["all", ...Array.from(new Set(ITEMS.map(item => item.category)))], []);
+
+  // Row renderer for react-window
+  const Row = ({ index, style, data }: any) => {
+    const item = data.items[index];
+    return (
+      <div style={style}>
+        <PerformanceDemoItem item={item} searchTerm={data.searchTerm} />
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -119,17 +129,16 @@ export function PerformanceDemoList() {
           Showing {sortedItems.length} of {ITEMS.length} items
         </div>
       </div>
-
-      {/* The expensive list - renders all items without virtualization */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {sortedItems.map((item) => (
-          <PerformanceDemoItem
-            key={item.id}
-            item={item}
-            searchTerm={searchTerm} // Passing searchTerm causes unnecessary re-renders
-          />
-        ))}
-      </div>
+      {/* Virtualized list */}
+      <List
+        height={800}
+        itemCount={sortedItems.length}
+        itemSize={220}
+        width={"100%"}
+        itemData={{ items: sortedItems, searchTerm }}
+      >
+        {Row}
+      </List>
     </div>
   );
 }
