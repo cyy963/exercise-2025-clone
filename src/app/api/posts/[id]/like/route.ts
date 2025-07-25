@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { posts } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth/utils";
 import { eq, sql } from "drizzle-orm";
+import { z } from "zod";
 
 type Payload = {
   action: "like" | "unlike";
@@ -27,14 +28,19 @@ export async function POST(
       return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
-    const body: Payload = await request.json();
+    const body = await request.json();
+    const payloadSchema = z.object({ action: z.enum(["like", "unlike"]) });
+    const validated = payloadSchema.safeParse(body);
+    if (!validated.success) {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+    const { action } = validated.data;
 
-    if (body.action === "like") {
+    if (action === "like") {
       await db
         .update(posts)
         .set({
           likeCount: sql`${posts.likeCount} + 1`,
-          ...body,
         })
         .where(eq(posts.id, postId));
     } else {
@@ -42,7 +48,6 @@ export async function POST(
         .update(posts)
         .set({
           likeCount: sql`CASE WHEN ${posts.likeCount} > 0 THEN ${posts.likeCount} - 1 ELSE 0 END`,
-          ...body,
         })
         .where(eq(posts.id, postId));
     }
@@ -56,7 +61,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       post: updatedPost,
-      message: `Post ${body.action}d successfully`,
+      message: `Post ${action}d successfully`,
     });
   } catch (error) {
     console.error("Like/unlike error:", error);
