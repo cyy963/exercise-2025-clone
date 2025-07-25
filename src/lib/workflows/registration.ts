@@ -49,7 +49,7 @@ export const registerUser = (username: string, password: string) =>
   });
 
 // To run it:
-Effect.runPromise(registerUserEffect("user", "pass"))
+Effect.runPromise(registerUser("user", "pass"))
   .then(console.log)
   .catch(console.error);
 
