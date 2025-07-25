@@ -1,71 +1,57 @@
 import { db } from "@/lib/db";
 import { users, posts } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth/utils";
+import { Effect } from "effect"; // or "@effect/io" if that's your version
 
 interface NotificationResult {
   sent: boolean;
   messageId: string;
 }
 
-export async function registerUser(username: string, password: string) {
-  // hash password
-  try {
-    var hashedPassword = await hashPassword(password);
-  } catch (error) {
-    console.error("Failed to hash password:", error);
-    throw new Error("Failed to process password");
-  }
+export const registerUserEffect = (username: string, password: string) =>
+  Effect.gen(function* (_) {
+    // Step 1: Hash password (side effect)
+    const hashedPassword = yield* Effect.tryPromise({
+      try: () => hashPassword(password),
+      catch: (error) => new Error("Failed to hash password: " + error)
+    });
 
-  // create user
-  try {
-    var [newUser] = await db
-      .insert(users)
-      .values({
+    // Step 2: Insert user (side effect)
+    const [newUser] = yield* Effect.tryPromise({
+      try: () => db.insert(users).values({
         username,
         hashedPassword,
         createdAt: new Date(),
-      })
-      .returning();
-  } catch (error) {
-    console.error("Failed to create user:", error);
-    throw new Error("Failed to create user account");
-  }
+      }).returning(),
+      catch: (error) => new Error("Failed to create user: " + error)
+    });
 
-  // create welcome post
-  try {
-    var welcomePost = await db
-      .insert(posts)
-      .values({
+    // Step 3: Create welcome post (side effect)
+    yield* Effect.tryPromise({
+      try: () => db.insert(posts).values({
         title: `Welcome ${username}!`,
         content: `Welcome to our platform, ${username}! We're excited to have you here.`,
         authorId: newUser.id,
         likeCount: 0,
         createdAt: new Date(),
-      })
-      .returning();
-  } catch (error) {
-    console.error("Failed to create welcome post:", error);
-    throw new Error("Failed to create welcome post");
-  }
+      }).returning(),
+      catch: (error) => new Error("Failed to create welcome post: " + error)
+    });
 
-  // send welcome notification
-  try {
-    var notificationResult = await sendWelcomeNotification(
-      username,
-      newUser.id
-    );
-  } catch (error) {
-    console.error("Failed to send welcome notification:", error);
-    throw new Error("Failed to send welcome notification");
-  }
+    // Step 4: Send notification (side effect)
+    yield* Effect.tryPromise({
+      try: () => sendWelcomeNotification(username, newUser.id),
+      catch: (error) => new Error("Failed to send welcome notification: " + error)
+    });
 
-  return {
-    success: true,
-    user: newUser,
-    welcomePost: welcomePost[0],
-    notification: notificationResult,
-  };
-}
+    // Step 5: Return result
+    return { success: true, user: newUser };
+  });
+
+// To run it:
+Effect.runPromise(registerUserEffect("user", "pass"))
+  .then(console.log)
+  .catch(console.error);
 
 async function sendWelcomeNotification(
   username: string,
